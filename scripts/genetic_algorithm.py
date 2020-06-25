@@ -2,28 +2,33 @@ import os
 import traci
 import sumolib
 import tqdm
+import time
 import subprocess
 import numpy as np
 from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 
 pop_size = 5
+n_steps = 2000
+n_show_steps = 500
+show_its = 5
+random_init = True
+show_only_min = True
 
-emissions_weight = 1 / 32000000
-waiting_weight = 1 / 140000
+emissions_weight = 1 / 32_000_000
+waiting_weight = 1 / 140_000
 
 light_options = ['G', 'y', 'r']
 
-# cfg_name = 'simple.sumocfg'
-# cfg_name = 'random.sumocfg'
 cfg_name = 'single-intersection.sumocfg'
 
 sumo_binary = sumolib.checkBinary('sumo')
-sumoCmd = [sumo_binary, '-c', os.path.join('sumo_data', cfg_name), '--collision.action', 'remove']
+sumo_binary_gui = sumolib.checkBinary('sumo-gui')
+sumo_cmd = ['-c', os.path.join('sumo_data', cfg_name), '--quit-on-end', '--start']
 
-def start_sumo():
+def start_sumo(binary=sumo_binary):
 	PORT = sumolib.miscutils.getFreeSocketPort()
-	sumoProc = subprocess.Popen(sumoCmd + ['--remote-port', str(PORT)], stdout=open(os.devnull, 'w'))
+	sumoProc = subprocess.Popen([binary] + sumo_cmd + ['--remote-port', str(PORT)], stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
 	traci.init(PORT)
 
 def get_durations():
@@ -76,11 +81,10 @@ def eval(durs, states):
 	set_genome(durs, states)
 	emissions = []
 	waiting = []
-	for step in range(2000):
+	for step in range(n_steps):
 		traci.simulationStep()
 		emissions.append(np.sum([traci.lane.getCO2Emission(lane) for tl_lanes in lanes.values()  for lane in tl_lanes]))
 		waiting.append(np.sum([traci.lane.getWaitingTime(lane) for tl_lanes in lanes.values()  for lane in tl_lanes]))
-
 	fitness = emissions_weight * np.sum(emissions) + waiting_weight * np.sum(waiting)
 	traci.close()
 	return fitness
@@ -90,22 +94,26 @@ tlights = traci.trafficlight.getIDList()
 lanes = {tl: traci.trafficlight.getControlledLanes(tl) for tl in tlights}
 n_links = {tl: len(traci.trafficlight.getControlledLinks(tl)) for tl in tlights}
 
-# population = [mutation(get_durations(), get_states(), 1, 1) for _ in range(pop_size)]
-population = [mutation(get_durations(), get_states(), 1, 1) for _ in range(pop_size - 1)]
-population += [(get_durations(), get_states())]
+if random_init:
+	population = [mutation(get_durations(), get_states(), 1, 1) for _ in range(pop_size)]
+else:
+	population = [mutation(get_durations(), get_states(), 1, 1) for _ in range(pop_size - 1)]
+	population += [(get_durations(), get_states())]
 traci.close()
 
 plt.ion()
 fig, ax = plt.subplots()
+title = ax.set_title(f'Epoch 0')
 fitness_graph_min = ax.plot([], label='min')[0]
-fitness_graph_mean = ax.plot([], label='mean')[0]
-fitness_graph_max = ax.plot([], label='max')[0]
+if not show_only_min:
+	fitness_graph_max = ax.plot([], label='max')[0]
+	fitness_graph_mean = ax.plot([], label='mean')[0]
 ax.legend()
 fig.canvas.draw()
 fig.canvas.flush_events()
 
 fitnesses_all = []
-for epoch in range(15):
+for epoch in range(100):
 	print('=======================================================================================')
 	print(f'======================================= Epoch {epoch+1} =======================================')
 	print('=======================================================================================')
@@ -120,13 +128,28 @@ for epoch in range(15):
 	durs_best, states_best = population[best]
 	population = [mutation(durs_best, states_best) for _ in range(pop_size - 1)] + [(durs_best, states_best)]
 
-	fitness_graph_min.set_data(range(len(fitnesses_all)), np.array(fitnesses_all).min(axis=1))
-	fitness_graph_mean.set_data(range(len(fitnesses_all)), np.array(fitnesses_all).mean(axis=1))
-	fitness_graph_max.set_data(range(len(fitnesses_all)), np.array(fitnesses_all).max(axis=1))
+	title.set_text(f'Epoch {epoch + 1}')
+	fitness_graph_min.set_data(np.arange(len(fitnesses_all))+1, np.array(fitnesses_all).min(axis=1))
+	if not show_only_min:
+		fitness_graph_max.set_data(np.arange(len(fitnesses_all))+1, np.array(fitnesses_all).max(axis=1))
+		fitness_graph_mean.set_data(np.arange(len(fitnesses_all))+1, np.array(fitnesses_all).mean(axis=1))
 	ax.relim()
 	ax.autoscale_view()
 	fig.canvas.draw()
 	fig.canvas.flush_events()
+
+	if show_its > 0 and (epoch + 1) % show_its == 0:
+		try:
+			print('Visualizing the current best')
+			start_sumo(sumo_binary_gui)
+			set_genome(durs_best, states_best)
+			for step in range(n_show_steps):
+				traci.simulationStep()
+				time.sleep(40 / 1000)
+			traci.close()
+		except traci.exceptions.FatalTraCIError:
+			print('Manually closed TraCI visualization')
+			traci.close()
 
 print('=================================== Done! ===================================')
 plt.ioff()
