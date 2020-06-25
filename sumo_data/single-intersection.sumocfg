@@ -1,0 +1,10 @@
+<configuration>
+    <input>
+        <net-file value="maps/single-intersection.net.xml"/>
+        <route-files value="routes/single-intersection.rou.xml"/>
+    </input>
+    <time>
+        <begin value="0"/>
+        <end value="100000"/>
+    </time>
+</configuration>
