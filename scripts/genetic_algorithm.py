@@ -8,19 +8,22 @@ import numpy as np
 from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 
-pop_size = 5
+pop_size = 10
 n_steps = 2000
 n_show_steps = 500
-show_its = 5
+show_its = 3
 random_init = True
-show_only_min = True
+show_only_min = False
+duration_mutation_rate = 0.3
+duration_mutation_strength = 15
+states_mutation_rate = 0.2
 
 emissions_weight = 1 / 32_000_000
 waiting_weight = 1 / 140_000
 
 light_options = ['G', 'y', 'r']
 
-cfg_name = 'single-intersection.sumocfg'
+cfg_name = 'martini.sumocfg'
 
 sumo_binary = sumolib.checkBinary('sumo')
 sumo_binary_gui = sumolib.checkBinary('sumo-gui')
@@ -61,7 +64,7 @@ def set_genome(durations, states):
 		logic = traci.trafficlight.Logic(traci.trafficlight.getProgram(tl), 0, 0, phases=definition.phases)
 		traci.trafficlight.setCompleteRedYellowGreenDefinition(tl, logic)
 
-def mutation(durations, states, p_dur=0.3, p_stat=0.2, strength=15):
+def mutation(durations, states, p_dur=duration_mutation_rate, p_stat=states_mutation_rate, strength=duration_mutation_strength):
 	durations = list(durations)
 	states = list(states)
 
@@ -71,7 +74,7 @@ def mutation(durations, states, p_dur=0.3, p_stat=0.2, strength=15):
 
 	for i in range(len(states)):
 		states[i] = list(states[i])
-		for j in np.where(np.random.uniform(size=len(durations)) < p_stat)[0]:
+		for j in np.where(np.random.uniform(size=len(states[i])) < p_stat)[0]:
 			states[i][j] = np.random.choice(light_options)
 		states[i] = ''.join(states[i])
 	return durations, states
