@@ -1,5 +1,8 @@
 # SumoRinger
 
+## Organizational
+[To-do list](https://github.com/geronimocharlie/SumoRinger/projects/1) | [Presentation brainstorming](https://github.com/geronimocharlie/SumoRinger/tree/master/presentation)
+
 ## Generate random trips
 Given a `.net.xml` (road network) file, we can generate random trips using
 ```
