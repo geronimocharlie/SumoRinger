@@ -55,8 +55,10 @@ def set_genome(durations, states):
 		logic = traci.trafficlight.Logic(traci.trafficlight.getProgram(tl), 0, 0, phases=definition.phases)
 		traci.trafficlight.setCompleteRedYellowGreenDefinition(tl, logic)
 
-def mutation(durations, states, p_dur=0.15, p_stat=0.05, strength=10):
-	durations = durations.copy()
+def mutation(durations, states, p_dur=0.3, p_stat=0.2, strength=15):
+	durations = list(durations)
+	states = list(states)
+
 	dur_idxs = np.where(np.random.uniform(size=len(durations)) < p_dur)[0]
 	for i in dur_idxs:
 		durations[i] += np.random.normal(scale=strength)
@@ -115,7 +117,7 @@ for epoch in range(15):
 
 	best = np.argmin(fitnesses)
 	durs_best, states_best = population[best]
-	population = [mutation(durs_best, states_best) for _ in range(pop_size)]
+	population = [mutation(durs_best, states_best) for _ in range(pop_size - 1)] + [(durs_best, states_best)]
 
 	fitness_graph_min.set_data(range(len(fitnesses_all)), np.array(fitnesses_all).min(axis=1))
 	fitness_graph_mean.set_data(range(len(fitnesses_all)), np.array(fitnesses_all).mean(axis=1))
