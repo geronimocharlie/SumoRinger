@@ -4,6 +4,7 @@ import sumolib
 import tqdm
 import subprocess
 import numpy as np
+from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 
 pop_size = 5
@@ -70,13 +71,28 @@ def mutation(durations, states, p_dur=0.3, p_stat=0.2, strength=15):
 		states[i] = ''.join(states[i])
 	return durations, states
 
+def eval(durs, states):
+	start_sumo()
+	set_genome(durs, states)
+	emissions = []
+	waiting = []
+	for step in range(2000):
+		traci.simulationStep()
+		emissions.append(np.sum([traci.lane.getCO2Emission(lane) for tl_lanes in lanes.values()  for lane in tl_lanes]))
+		waiting.append(np.sum([traci.lane.getWaitingTime(lane) for tl_lanes in lanes.values()  for lane in tl_lanes]))
+
+	fitness = emissions_weight * np.sum(emissions) + waiting_weight * np.sum(waiting)
+	traci.close()
+	return fitness
+
 start_sumo()
 tlights = traci.trafficlight.getIDList()
 lanes = {tl: traci.trafficlight.getControlledLanes(tl) for tl in tlights}
 n_links = {tl: len(traci.trafficlight.getControlledLinks(tl)) for tl in tlights}
 
+# population = [mutation(get_durations(), get_states(), 1, 1) for _ in range(pop_size)]
 population = [mutation(get_durations(), get_states(), 1, 1) for _ in range(pop_size - 1)]
-# population += [(get_durations(), get_states())]
+population += [(get_durations(), get_states())]
 traci.close()
 
 plt.ion()
@@ -94,22 +110,7 @@ for epoch in range(15):
 	print(f'======================================= Epoch {epoch+1} =======================================')
 	print('=======================================================================================')
 
-	fitnesses = []
-	for durs, states in population:
-		start_sumo()
-		set_genome(durs, states)
-		emissions = []
-		waiting = []
-		for step in range(360):
-			traci.simulationStep()
-			emissions.append(np.sum([traci.lane.getCO2Emission(lane) for tl_lanes in lanes.values()  for lane in tl_lanes]))
-			waiting.append(np.sum([traci.lane.getWaitingTime(lane) for tl_lanes in lanes.values()  for lane in tl_lanes]))
-
-		fitness = emissions_weight * np.sum(emissions) + waiting_weight * np.sum(waiting)
-		print(f'=================================== Fitness: {fitness} ===================================')
-		fitnesses.append(fitness)
-
-		traci.close()
+	fitnesses = Parallel(n_jobs=-1)(delayed(eval)(durs, states) for durs, states in population)
 	fitnesses_all.append(fitnesses)
 
 	print(f'=================================== Min fitness: {np.min(fitnesses)} ===================================')
