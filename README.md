@@ -13,7 +13,7 @@ This will generate a `trips.xml` and `rou.xml` file with random trips. To run a 
 ## Import OpenStreetMap (OSM) data
 Execute the following command to download OSM data for Osnabrück. For that the environment variable `SUMO_HOME` has to be set accordingly ([tutorial](https://sumo.dlr.de/docs/Basics/Basic_Computer_Skills.html#configuring_path_settings)).
 ```
-python $SUMO_HOME/tools/osmGet.py -b 8.0274 52.2590 8.0703 52.2873 -d path/to/output/dir/
+python $SUMO_HOME/tools/osmGet.py -b 8.0274,52.2590,8.0703,52.2873 -d path/to/output/dir/
 ```
 After that, convert the OSM data to SUMO data using
 ```
