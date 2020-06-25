@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<routes>
+  <vType accel="3.0" decel="6.0" id="CarA" length="5.0" minGap="2.5" maxSpeed="50.0" sigma="0.5" />
+  <vType accel="2.0" decel="6.0" id="CarB" length="7.5" minGap="2.5" maxSpeed="50.0" sigma="0.5" />
+  <vType accel="1.0" decel="5.0" id="CarC" length="5.0" minGap="2.5" maxSpeed="40.0" sigma="0.5" />
+  <vType accel="1.0" decel="5.0" id="CarD" length="7.5" minGap="2.5" maxSpeed="30.0" sigma="0.5" />
+  <route id="route01" edges="D2 L2 L12 L10 L7 D7"/>
+  <route id="route02" edges="D2 L2 L12 L15 L18 L5 D5"/>
+  <route id="route03" edges="D2 L2 L12 L15 L13 L3 D3"/>
+  <route id="route04" edges="D4 L4 L14 L18 L5 D5"/>
+  <route id="route05" edges="D4 L4 L14 L16 L10 L7 D7"/>
+  <route id="route06" edges="D4 L4 L14 L16 L11 L1 D1"/>
+  <route id="route07" edges="D6 L6 L17 L13 L3 D3"/>
+  <route id="route08" edges="D6 L6 L17 L16 L11 L1 D1"/>
+  <route id="route09" edges="D6 L6 L17 L16 L10 L7 D7"/>
+  <route id="route10" edges="D8 L8 L9 L11 L1 D1"/>
+  <route id="route11" edges="D8 L8 L9 L15 L13 L3 D3"/>
+  <route id="route12" edges="D8 L8 L9 L15 L18 L5 D5"/>
+  <vehicle depart="54000" id="veh0" route="route01" type="CarA" color="1,0,0" />
+  <vehicle depart="54000" id="veh1" route="route02" type="CarA" />
+  <vehicle depart="54000" id="veh2" route="route03" type="CarA" />
+  <vehicle depart="54000" id="veh3" route="route04" type="CarA" />
+  <vehicle depart="54000" id="veh4" route="route05" type="CarA" />
+  <vehicle depart="54000" id="veh5" route="route06" type="CarA" />
+  <vehicle depart="54000" id="veh6" route="route07" type="CarA" />
+  <vehicle depart="54000" id="veh7" route="route08" type="CarA" />
+  <vehicle depart="54000" id="veh8" route="route09" type="CarA" />
+  <vehicle depart="54000" id="veh9" route="route10" type="CarA" />
+  <vehicle depart="54000" id="veh10" route="route11" type="CarA" />
+  <vehicle depart="54000" id="veh11" route="route12" type="CarA" />
+  <vehicle depart="54000" id="veh12" route="route01" type="CarB" color="1,0,0" />
+  <vehicle depart="54000" id="veh13" route="route02" type="CarB" />
+  <vehicle depart="54000" id="veh14" route="route03" type="CarB" />
+  <vehicle depart="54000" id="veh15" route="route04" type="CarB" />
+  <vehicle depart="54000" id="veh16" route="route05" type="CarB" />
+  <vehicle depart="54000" id="veh17" route="route06" type="CarB" />
+  <vehicle depart="54000" id="veh18" route="route07" type="CarB" />
+</routes>
