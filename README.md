@@ -6,7 +6,7 @@
 ## Generate random trips
 Given a `.net.xml` (road network) file, we can generate random trips using
 ```
-python $SUMO_HOME/tools/randomTrips.py -n maps/osna.net.xml -o trips/random.trips.xml --route-file routes/random.rou.xml -v
+python $SUMO_HOME/tools/randomTrips.py -n sumo_data/maps/simple.net.xml -o sumo_data/trips/simple.trips.xml --route-file sumo_data/routes/simple.rou.xml -p 20 -v
 ```
 This will generate a `trips.xml` and `rou.xml` file with random trips. To run a simulation with these trips, insert the file names for the road network file (`.net.xml`) and routes (`.rou.xml`) into the SUMO config file (`.sumo.cfg`).
 
