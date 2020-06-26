@@ -1,9 +1,12 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-fname = "data/simulation_data_26-06-2020_04-01-26_PM.csv"
+
+fname = "data/simulation_data_26-06-2020_04-14-23_PM.csv"
 
 df = pd.read_csv(fname)
+
+plt.style.use('ggplot')
 
 fig, axes = plt.subplots(2,1,sharex=True, figsize=(10,8))
 fig.suptitle("Improvements over time")
