@@ -47,29 +47,29 @@ def start_sumo(binary=sumo_binary):
 	sumoProc = subprocess.Popen([binary] + sumo_cmd + ['--remote-port', str(port)],
 								stdout=open(os.devnull, 'w'),
 								stderr=open(os.devnull, 'w'))
-	traci.init(port)
+	return traci.connect(port)
 
-def get_durations():
+def get_durations(conn):
 	'''Grabs the phase durations for all traffic light systems in the road network.'''
 	durations = []
 	for tl in tlights:
-		definitions = traci.trafficlight.getCompleteRedYellowGreenDefinition(tl)
+		definitions = conn.trafficlight.getCompleteRedYellowGreenDefinition(tl)
 		for definition in definitions:
 			for phase in definition.phases:
 				durations.append(phase.minDur)
 	return durations
 
-def get_states():
+def get_states(conn):
 	'''Grabs the state definitions for all traffic light systems in the road network.'''
 	states = []
 	for tl in tlights:
-		definitions = traci.trafficlight.getCompleteRedYellowGreenDefinition(tl)
+		definitions = conn.trafficlight.getCompleteRedYellowGreenDefinition(tl)
 		for definition in definitions:
 			for phase in definition.phases:
 				states.append(phase.state)
 	return states
 
-def set_genome(durations, states):
+def set_genome(durations, states, conn):
 	'''
 	Set the genome (traffic light phase durations and states) for the current simulation.
 
@@ -80,15 +80,15 @@ def set_genome(durations, states):
 	idx = 0
 	# iterate over all traffic light systems in the simulation
 	for tl in tlights:
-		definition = traci.trafficlight.getCompleteRedYellowGreenDefinition(tl)[0]
+		definition = conn.trafficlight.getCompleteRedYellowGreenDefinition(tl)[0]
 		for phase in definition.phases:
 			# set the current phase's duration and state
 			phase.minDur = phase.maxDur = durations[idx]
 			phase.state = states[idx]
 			idx += 1
 		# replace the durations and phases in the simulation instance
-		logic = traci.trafficlight.Logic(traci.trafficlight.getProgram(tl), 0, 0, phases=definition.phases)
-		traci.trafficlight.setCompleteRedYellowGreenDefinition(tl, logic)
+		logic = conn.trafficlight.Logic(conn.trafficlight.getProgram(tl), 0, 0, phases=definition.phases)
+		conn.trafficlight.setCompleteRedYellowGreenDefinition(tl, logic)
 
 def mutation(durations, states, p_dur=duration_mutation_rate, p_stat=states_mutation_rate, strength=duration_mutation_strength):
 	'''
@@ -125,17 +125,17 @@ def mutation(durations, states, p_dur=duration_mutation_rate, p_stat=states_muta
 
 def eval(durs, states):
 	# instantiate a new SUMO instance and set insert the current genome
-	start_sumo()
-	set_genome(durs, states)
+	conn = start_sumo()
+	set_genome(durs, states, conn)
 
 	emissions = []
 	waiting = []
 	fitness = 0
 	for step in range(n_steps):
 		# take one step in the simulation
-		traci.simulationStep()
+		conn.simulationStep()
 		# check for collisions in the current time step
-		if traci.simulation.getCollidingVehiclesNumber() > 0:
+		if conn.simulation.getCollidingVehiclesNumber() > 0:
 			# break the current simulation and penalize the genome's fitness
 			fitness += collision_penalty
 			break
@@ -146,32 +146,32 @@ def eval(durs, states):
 		for tl_lanes in lanes.values():
 			for lane in tl_lanes:
 				# compute per lane scores
-				lane_emissions += traci.lane.getCO2Emission(lane)
-				lane_waiting += traci.lane.getWaitingTime(lane)
+				lane_emissions += conn.lane.getCO2Emission(lane)
+				lane_waiting += conn.lane.getWaitingTime(lane)
 		emissions.append(lane_emissions)
 		waiting.append(lane_waiting)
 
 	# compute the total fitness score for the current genome
 	fitness += emissions_weight * np.sum(emissions) + waiting_weight * np.sum(waiting)
 	# close the simulation instance and return the fitness
-	traci.close()
+	conn.close()
 	return fitness
 
 # extract traffic light information from the road network
-start_sumo()
-tlights = traci.trafficlight.getIDList()
-lanes = {tl: traci.trafficlight.getControlledLanes(tl) for tl in tlights}
-n_links = {tl: len(traci.trafficlight.getControlledLinks(tl)) for tl in tlights}
+conn = start_sumo()
+tlights = conn.trafficlight.getIDList()
+lanes = {tl: conn.trafficlight.getControlledLanes(tl) for tl in tlights}
+n_links = {tl: len(conn.trafficlight.getControlledLinks(tl)) for tl in tlights}
 
 # initialize the population
 if random_init:
 	# random initialization
-	population = [mutation(get_durations(), get_states(), 1, 1) for _ in range(pop_size)]
+	population = [mutation(get_durations(conn), get_states(conn), 1, 1) for _ in range(pop_size)]
 else:
 	# hardcoded initialization from the road network file
-	population = [mutation(get_durations(), get_states(), 1, 1) for _ in range(pop_size - 1)]
-	population += [(get_durations(), get_states())]
-traci.close()
+	population = [mutation(get_durations(conn), get_states(conn), 1, 1) for _ in range(pop_size - 1)]
+	population += [(get_durations(conn), get_states(conn))]
+conn.close()
 
 # initialize the fitness plot
 plt.ion()
@@ -221,17 +221,17 @@ for epoch in range(100):
 		try:
 			# initialize
 			print('Visualizing the current best')
-			start_sumo(sumo_binary_gui)
-			set_genome(durs_best, states_best)
+			conn = start_sumo(sumo_binary_gui)
+			set_genome(durs_best, states_best, conn)
 			# run simulation
 			for step in range(n_show_steps):
-				traci.simulationStep()
+				conn.simulationStep()
 				time.sleep(40 / 1000)
-			traci.close()
+			conn.close()
 		except traci.exceptions.FatalTraCIError:
 			# user manually closed the simulation window, just proceed with the optimization
 			print('Manually closed TraCI visualization')
-			traci.close()
+			conn.close()
 
 print('=================================== Done! ===================================')
 plt.ioff()
