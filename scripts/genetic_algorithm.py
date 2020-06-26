@@ -11,9 +11,9 @@ import pandas as pd
 from datetime import datetime
 
 # define hyperparameters
-pop_size = 20
+pop_size = 10
 n_survivors = 3
-n_steps = 2000
+n_steps = 1000
 n_show_steps = 500
 show_its = 10
 show_only_min = False # plot only the miniumum fitness per epoch
@@ -28,6 +28,10 @@ random_init = model_file is None
 # data saving
 class Data(object):
 	def __init__(self):
+		'''
+		Initialize a new data storing object to keep track of the
+		emissions and waiting time data over time
+		'''
 		self.emission_a = []
 		self.waiting_a = []
 		df = pd.DataFrame(columns=["Waiting Time", "Emissions"])
@@ -38,12 +42,20 @@ class Data(object):
 		df.to_csv(self.fname)
 
 	def store(self, elist, wlist):
+		'''
+		Add emisions and waiting time data from one epoch.
+
+		Args:
+			elist: emission data
+			wlist: waiting time data
+		'''
 		avge = np.mean(elist)
 		avgw = np.mean(wlist)
 		self.emission_a.append(avge)
 		self.waiting_a.append(avgw)
 
 	def plot_and_save_data(self):
+		'''Save the emissions and waiting time history to a CSV file.'''
 		df = pd.DataFrame(columns=["Waiting Time", "Emissions"])
 		df["Waiting Time"] = self.waiting_a
 		df["Emissions"] = self.emission_a
