@@ -2,23 +2,25 @@ import os
 import traci
 import sumolib
 import time
+import pickle
 import subprocess
 import numpy as np
 from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 
 # define hyperparameters
-pop_size = 10
+pop_size = 5
 n_steps = 2000
 n_show_steps = 500
-show_its = 10
-random_init = True
-show_only_min = False
+show_its = 1
+show_only_min = False # plot only the miniumum fitness per epoch
 duration_mutation_rate = 0.3
 duration_mutation_strength = 15
 states_mutation_rate = 0.2
-collision_penalty = 10
+collision_penalty = 20
 n_jobs = -1
+model_file = None # name of a file in the models directory
+random_init = model_file is None
 
 # the simulation config file
 cfg_name = 'martini.sumocfg'
@@ -179,9 +181,15 @@ if random_init:
 	# random initialization
 	population = [mutation(get_durations(conn), get_states(conn), 1, 1) for _ in range(pop_size)]
 else:
-	# hardcoded initialization from the road network file
-	population = [mutation(get_durations(conn), get_states(conn), 1, 1) for _ in range(pop_size - 1)]
-	population += [(get_durations(conn), get_states(conn))]
+	if model_file is not None:
+		with open(os.path.join('models', model_file), 'rb') as file:
+			durs_loaded, states_loaded = pickle.load(file)
+		population = [mutation(durs_loaded, states_loaded) for _ in range(pop_size - 1)] + [(durs_loaded, states_loaded)]
+		print(f'Finished loading the model file "{model_file}" with fitness score {eval(durs_loaded, states_loaded):.3f}')
+	else:
+		# hardcoded initialization from the road network file
+		population = [mutation(get_durations(conn), get_states(conn), 1, 1) for _ in range(pop_size - 1)]
+		population += [(get_durations(conn), get_states(conn))]
 conn.close()
 
 # initialize the fitness plot
@@ -198,9 +206,10 @@ fig.canvas.flush_events()
 
 # run the optimization loop
 fitnesses_all = []
-for epoch in range(100):
+epoch = 1
+while True:
 	print('=======================================================================================')
-	print(f'======================================= Epoch {epoch+1} =======================================')
+	print(f'======================================= Epoch {epoch} =======================================')
 	print('=======================================================================================')
 
 	# evaluate the fitness scores for the current population in parallel
@@ -217,7 +226,7 @@ for epoch in range(100):
 	population = [mutation(durs_best, states_best) for _ in range(pop_size - 1)] + [(durs_best, states_best)]
 
 	# update the fitness plot
-	title.set_text(f'Epoch {epoch + 1}')
+	title.set_text(f'Epoch {epoch}')
 	fitness_graph_min.set_data(np.arange(len(fitnesses_all))+1, np.array(fitnesses_all).min(axis=1))
 	if not show_only_min:
 		fitness_graph_max.set_data(np.arange(len(fitnesses_all))+1, np.array(fitnesses_all).max(axis=1))
@@ -228,7 +237,7 @@ for epoch in range(100):
 	fig.canvas.flush_events()
 
 	# run the current best genome in a SUMO simulation with GUI
-	if show_its > 0 and (epoch + 1) % show_its == 0:
+	if show_its > 0 and (epoch) % show_its == 0:
 		try:
 			# initialize
 			print('Visualizing the current best')
@@ -244,6 +253,7 @@ for epoch in range(100):
 			print('Manually closed TraCI visualization')
 			conn.close()
 
-print('=================================== Done! ===================================')
-plt.ioff()
-plt.show()
+	with open(os.path.join('models', f'model-{epoch}-{np.min(fitnesses):.2f}.pkl'), 'wb') as file:
+		pickle.dump((durs_best, states_best), file)
+
+	epoch += 1
