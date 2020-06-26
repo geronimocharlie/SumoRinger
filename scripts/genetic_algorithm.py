@@ -1,40 +1,56 @@
 import os
 import traci
 import sumolib
-import tqdm
 import time
 import subprocess
 import numpy as np
 from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 
+# define hyperparameters
 pop_size = 10
 n_steps = 2000
 n_show_steps = 500
-show_its = 3
+show_its = 10
 random_init = True
 show_only_min = False
 duration_mutation_rate = 0.3
 duration_mutation_strength = 15
 states_mutation_rate = 0.2
+collision_penalty = 10
+n_jobs = -1
 
+# weighting factors for CO2 emissions and vehicle waiting timess
 emissions_weight = 1 / 32_000_000
 waiting_weight = 1 / 140_000
 
+# possible traffic light states
 light_options = ['G', 'y', 'r']
 
+# the simulation config file
 cfg_name = 'martini.sumocfg'
 
+# define SUMO commands for starting the simulation
 sumo_binary = sumolib.checkBinary('sumo')
 sumo_binary_gui = sumolib.checkBinary('sumo-gui')
 sumo_cmd = ['-c', os.path.join('sumo_data', cfg_name), '--quit-on-end', '--start']
 
 def start_sumo(binary=sumo_binary):
-	PORT = sumolib.miscutils.getFreeSocketPort()
-	sumoProc = subprocess.Popen([binary] + sumo_cmd + ['--remote-port', str(PORT)], stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+	'''
+	Instantiates a SUMO simulation instance.
+
+	Args:
+		binary: path to the SUMO binary file (path to "sumo" or "sumo-gui")
+	'''
+	port = sumolib.miscutils.getFreeSocketPort()
+	# start the simulation and pipe its outputs into /dev/null
+	sumoProc = subprocess.Popen([binary] + sumo_cmd + ['--remote-port', str(port)],
+								stdout=open(os.devnull, 'w'),
+								stderr=open(os.devnull, 'w'))
 	traci.init(PORT)
 
 def get_durations():
+	'''Grabs the phase durations for all traffic light systems in the road network.'''
 	durations = []
 	for tl in tlights:
 		definitions = traci.trafficlight.getCompleteRedYellowGreenDefinition(tl)
@@ -44,6 +60,7 @@ def get_durations():
 	return durations
 
 def get_states():
+	'''Grabs the state definitions for all traffic light systems in the road network.'''
 	states = []
 	for tl in tlights:
 		definitions = traci.trafficlight.getCompleteRedYellowGreenDefinition(tl)
@@ -80,15 +97,36 @@ def mutation(durations, states, p_dur=duration_mutation_rate, p_stat=states_muta
 	return durations, states
 
 def eval(durs, states):
+	# instantiate a new SUMO instance and set insert the current genome
 	start_sumo()
 	set_genome(durs, states)
+
 	emissions = []
 	waiting = []
+	fitness = 0
 	for step in range(n_steps):
+		# take one step in the simulation
 		traci.simulationStep()
-		emissions.append(np.sum([traci.lane.getCO2Emission(lane) for tl_lanes in lanes.values()  for lane in tl_lanes]))
-		waiting.append(np.sum([traci.lane.getWaitingTime(lane) for tl_lanes in lanes.values()  for lane in tl_lanes]))
-	fitness = emissions_weight * np.sum(emissions) + waiting_weight * np.sum(waiting)
+		# check for collisions in the current time step
+		if traci.simulation.getCollidingVehiclesNumber() > 0:
+			# break the current simulation and penalize the genome's fitness
+			fitness += collision_penalty
+			break
+
+		# compute the total emissions and waiting time for all lanes in the simulation
+		lane_emissions = 0
+		lane_waiting = 0
+		for tl_lanes in lanes.values():
+			for lane in tl_lanes:
+				# compute per lane scores
+				lane_emissions += traci.lane.getCO2Emission(lane)
+				lane_waiting += traci.lane.getWaitingTime(lane)
+		emissions.append(lane_emissions)
+		waiting.append(lane_waiting)
+
+	# compute the total fitness score for the current genome
+	fitness += emissions_weight * np.sum(emissions) + waiting_weight * np.sum(waiting)
+	# close the simulation instance and return the fitness
 	traci.close()
 	return fitness
 
@@ -121,7 +159,7 @@ for epoch in range(100):
 	print(f'======================================= Epoch {epoch+1} =======================================')
 	print('=======================================================================================')
 
-	fitnesses = Parallel(n_jobs=-1)(delayed(eval)(durs, states) for durs, states in population)
+	fitnesses = Parallel(n_jobs=n_jobs)(delayed(eval)(durs, states) for durs, states in population)
 	fitnesses_all.append(fitnesses)
 
 	print(f'=================================== Min fitness: {np.min(fitnesses)} ===================================')
