@@ -10,8 +10,6 @@ from matplotlib import pyplot as plt
 import pandas as pd
 from datetime import datetime
 
-
-
 # define hyperparameters
 pop_size = 20
 n_survivors = 3
@@ -68,8 +66,6 @@ light_options = ['G', 'y', 'r']
 sumo_binary = sumolib.checkBinary('sumo')
 sumo_binary_gui = sumolib.checkBinary('sumo-gui')
 sumo_cmd = ['-c', os.path.join('sumo_data', cfg_name), '--quit-on-end', '--start']
-
-
 
 def start_sumo(binary=sumo_binary):
 	'''
@@ -263,12 +259,10 @@ fig.canvas.draw()
 fig.canvas.flush_events()
 
 # run the optimization loop
-fitnesses_all = []
 epoch = 1
+fitnesses_all = []
 data = Data()
 while True:
-
-
 	print('=======================================================================================')
 	print(f'======================================= Epoch {epoch} =======================================')
 	print('=======================================================================================')
@@ -291,7 +285,6 @@ while True:
 
 	best = np.argmin(fitnesses)
 	durs_best, states_best = population[best]
-	# population = [mutation(durs_best, states_best) for _ in range(pop_size - 1)] + [(durs_best, states_best)]
 
 	# update the fitness plot
 	title.set_text(f'Epoch {epoch}')
