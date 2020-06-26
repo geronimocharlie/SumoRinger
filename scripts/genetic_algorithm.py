@@ -20,15 +20,15 @@ states_mutation_rate = 0.2
 collision_penalty = 10
 n_jobs = -1
 
+# the simulation config file
+cfg_name = 'martini.sumocfg'
+
 # weighting factors for CO2 emissions and vehicle waiting timess
 emissions_weight = 1 / 32_000_000
 waiting_weight = 1 / 140_000
 
 # possible traffic light states
 light_options = ['G', 'y', 'r']
-
-# the simulation config file
-cfg_name = 'martini.sumocfg'
 
 # define SUMO commands for starting the simulation
 sumo_binary = sumolib.checkBinary('sumo')
@@ -47,7 +47,7 @@ def start_sumo(binary=sumo_binary):
 	sumoProc = subprocess.Popen([binary] + sumo_cmd + ['--remote-port', str(port)],
 								stdout=open(os.devnull, 'w'),
 								stderr=open(os.devnull, 'w'))
-	traci.init(PORT)
+	traci.init(port)
 
 def get_durations():
 	'''Grabs the phase durations for all traffic light systems in the road network.'''
