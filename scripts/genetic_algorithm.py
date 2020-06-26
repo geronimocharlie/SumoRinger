@@ -239,7 +239,6 @@ while True:
 	print()
 
 	# run the genetic algorithm
-	# TODO: Implement cross-over, n survivors
 	sorted = np.argsort(fitnesses)[:n_survivors]
 	survivors = [population[idx] for idx in sorted]
 	population = list(survivors)
