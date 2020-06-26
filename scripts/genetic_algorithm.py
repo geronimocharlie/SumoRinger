@@ -42,8 +42,6 @@ class Data(object):
 		avgw = np.mean(wlist)
 		self.emission_a.append(avge)
 		self.waiting_a.append(avgw)
-		print(self.emission_a, "avg emmision list")
-		print(self.waiting_a, "avg waiting list")
 
 	def plot_and_save_data(self):
 		df = pd.DataFrame(columns=["Waiting Time", "Emissions"])
@@ -314,7 +312,6 @@ while True:
 		except traci.exceptions.FatalTraCIError:
 			# user manually closed the simulation window, just proceed with the optimization
 			print('Manually closed TraCI visualization')
-
 			conn.close()
 
 	with open(os.path.join('models', f'model-{epoch}-{np.min(fitnesses):.2f}.pkl'), 'wb') as file:
