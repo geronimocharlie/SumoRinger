@@ -9,13 +9,14 @@ from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 
 # define hyperparameters
-pop_size = 5
+pop_size = 20
+n_survivors = 3
 n_steps = 2000
 n_show_steps = 500
-show_its = 1
+show_its = 10
 show_only_min = False # plot only the miniumum fitness per epoch
 duration_mutation_rate = 0.3
-duration_mutation_strength = 15
+duration_mutation_strength = 8
 states_mutation_rate = 0.2
 collision_penalty = 20
 n_jobs = -1
@@ -102,6 +103,24 @@ def set_genome(durations, states, conn):
 		# replace the durations and phases in the simulation instance
 		logic = conn.trafficlight.Logic(conn.trafficlight.getProgram(tl), 0, 0, phases=definition.phases)
 		conn.trafficlight.setCompleteRedYellowGreenDefinition(tl, logic)
+
+def crossover(model1, model2):
+	'''
+	Return a random uniform crossover of two models.
+
+	Args:
+		model1: the first model (tuple of durations and states)
+		model1: the second model (tuple of durations and states)
+	'''
+	dur1, stat1 = model1
+	dur2, stat2 = model2
+	dur_final = []
+	for i in range(len(dur1)):
+		dur_final.append(dur1[i] if np.random.uniform() < 0.5 else dur2[i])
+	stat_final = []
+	for i in range(len(stat1)):
+		stat_final.append(stat1[i] if np.random.uniform() < 0.5 else stat2[i])
+	return dur_final, stat_final
 
 def mutation(durations, states, p_dur=duration_mutation_rate, p_stat=states_mutation_rate, strength=duration_mutation_strength):
 	'''
@@ -221,9 +240,16 @@ while True:
 
 	# run the genetic algorithm
 	# TODO: Implement cross-over, n survivors
+	sorted = np.argsort(fitnesses)[:n_survivors]
+	survivors = [population[idx] for idx in sorted]
+	population = list(survivors)
+	while len(population) < pop_size:
+		parents = np.random.choice(len(survivors), 2)
+		population.append(mutation(*crossover(survivors[parents[0]], survivors[parents[1]])))
+
 	best = np.argmin(fitnesses)
 	durs_best, states_best = population[best]
-	population = [mutation(durs_best, states_best) for _ in range(pop_size - 1)] + [(durs_best, states_best)]
+	# population = [mutation(durs_best, states_best) for _ in range(pop_size - 1)] + [(durs_best, states_best)]
 
 	# update the fitness plot
 	title.set_text(f'Epoch {epoch}')
