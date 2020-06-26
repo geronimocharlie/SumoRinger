@@ -7,6 +7,10 @@ import subprocess
 import numpy as np
 from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
+import pandas as pd
+from datetime import datetime
+
+
 
 # define hyperparameters
 pop_size = 20
@@ -23,6 +27,33 @@ n_jobs = -1
 model_file = None # name of a file in the models directory
 random_init = model_file is None
 
+# data saving
+class Data(object):
+	def __init__(self):
+		self.emission_a = []
+		self.waiting_a = []
+		df = pd.DataFrame(columns=["Waiting Time", "Emissions"])
+		df["Waiting Time"] = self.waiting_a
+		df["Emissions"] = self.emission_a
+		t = datetime.now().strftime("%d-%m-%Y_%I-%M-%S_%p")
+		self.fname = f"data/simulation_data_{t}.csv"
+		df.to_csv(self.fname)
+
+	def store(self, elist, wlist):
+		avge = np.mean(elist)
+		avgw = np.mean(wlist)
+		self.emission_a.append(avge)
+		self.waiting_a.append(avgw)
+		print(self.emission_a, "avg emmision list")
+		print(self.waiting_a, "avg waiting list")
+
+	def plot_and_save_data(self):
+		df = pd.DataFrame(columns=["Waiting Time", "Emissions"])
+		df["Waiting Time"] = self.waiting_a
+		df["Emissions"] = self.emission_a
+		with open(self.fname, 'a') as f:
+				df.to_csv(f, header=False)
+
 # the simulation config file
 cfg_name = 'martini.sumocfg'
 
@@ -38,12 +69,16 @@ sumo_binary = sumolib.checkBinary('sumo')
 sumo_binary_gui = sumolib.checkBinary('sumo-gui')
 sumo_cmd = ['-c', os.path.join('sumo_data', cfg_name), '--quit-on-end', '--start']
 
+
+
 def start_sumo(binary=sumo_binary):
 	'''
 	Instantiates a SUMO simulation instance and return a connection object.
 
 	Args:
-		binary: path to the SUMO binary file (path to "sumo" or "sumo-gui")
+		binary: path to the SUMO binary file (path to df = pd.DataFrame(columns=["Waiting Time", "Emissions"])
+		df["Waiting Time"] = waiting_a
+		df["Emissions"] = emission_a"sumo" or "sumo-gui")
 	'''
 	port = sumolib.miscutils.getFreeSocketPort()
 	# start the simulation and pipe its outputs into /dev/null
@@ -54,7 +89,10 @@ def start_sumo(binary=sumo_binary):
 
 def get_durations(conn):
 	'''
-	Grabs the phase durations for all traffic light systems in the road network.
+	Grabs the phase def plot_and_save_data():
+	df = pd.DataFrame(data=[waiting_a, emissions_a], columns=["Waiting Time", "Emissions"])
+	fname = datetime.now().strftime("%d-%m-%Y_%I-%M-%S_%p")
+	df.to_csv(f"data/simulation_data_{fname}")durations for all traffic light systems in the road network.
 
 	Args:
 		conn: traci connection object
@@ -187,7 +225,8 @@ def eval(durs, states):
 	fitness += emissions_weight * np.sum(emissions) + waiting_weight * np.sum(waiting)
 	# close the simulation instance and return the fitness
 	conn.close()
-	return fitness
+	#data.store(emissions, waiting)
+	return (fitness, emissions, waiting)
 
 # extract traffic light information from the road network
 conn = start_sumo()
@@ -226,14 +265,18 @@ fig.canvas.flush_events()
 # run the optimization loop
 fitnesses_all = []
 epoch = 1
+data = Data()
 while True:
+
+
 	print('=======================================================================================')
 	print(f'======================================= Epoch {epoch} =======================================')
 	print('=======================================================================================')
 
 	# evaluate the fitness scores for the current population in parallel
-	fitnesses = Parallel(n_jobs=n_jobs)(delayed(eval)(durs, states) for durs, states in population)
+	fitnesses, elist, wlist = zip(*Parallel(n_jobs=n_jobs)(delayed(eval)(durs, states) for durs, states in population))
 	fitnesses_all.append(fitnesses)
+	data.store(elist, wlist)
 
 	print(f'=================================== Min fitness: {np.min(fitnesses)} ===================================')
 	print()
@@ -260,6 +303,7 @@ while True:
 	ax.autoscale_view()
 	fig.canvas.draw()
 	fig.canvas.flush_events()
+	data.plot_and_save_data()
 
 	# run the current best genome in a SUMO simulation with GUI
 	if show_its > 0 and (epoch) % show_its == 0:
@@ -272,10 +316,12 @@ while True:
 			for step in range(n_show_steps):
 				conn.simulationStep()
 				time.sleep(40 / 1000)
+
 			conn.close()
 		except traci.exceptions.FatalTraCIError:
 			# user manually closed the simulation window, just proceed with the optimization
 			print('Manually closed TraCI visualization')
+
 			conn.close()
 
 	with open(os.path.join('models', f'model-{epoch}-{np.min(fitnesses):.2f}.pkl'), 'wb') as file:
