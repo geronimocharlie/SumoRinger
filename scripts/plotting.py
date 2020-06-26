@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-fname = "data/simulation_data_26-06-2020_03-25-50_PM.csv"
+fname = "data/simulation_data_26-06-2020_04-01-26_PM.csv"
 
 df = pd.read_csv(fname)
 
