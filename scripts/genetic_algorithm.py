@@ -6,11 +6,13 @@ import subprocess
 import numpy as np
 from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
+import pandas as pd
+from datetime import datetime
 
 # define hyperparameters
 pop_size = 10
-n_steps = 2000
-n_show_steps = 500
+n_steps = 20
+n_show_steps = 5
 show_its = 10
 random_init = True
 show_only_min = False
@@ -19,6 +21,10 @@ duration_mutation_strength = 15
 states_mutation_rate = 0.2
 collision_penalty = 10
 n_jobs = -1
+
+# data saving
+emission_a = []
+waiting_a = []
 
 # the simulation config file
 cfg_name = 'martini.sumocfg'
@@ -34,6 +40,13 @@ light_options = ['G', 'y', 'r']
 sumo_binary = sumolib.checkBinary('sumo')
 sumo_binary_gui = sumolib.checkBinary('sumo-gui')
 sumo_cmd = ['-c', os.path.join('sumo_data', cfg_name), '--quit-on-end', '--start']
+
+def plot_and_save_data():
+	df = pd.DataFrame(columns=["Waiting Time", "Emissions"])
+	df["Waiting Time"] = waiting_a
+	df["Emissions"] = emission_a
+	fname = datetime.now().strftime("%d-%m-%Y_%I-%M-%S_%p")
+	df.to_csv(f"data/simulation_data_{fname}")
 
 def start_sumo(binary=sumo_binary):
 	'''
@@ -51,7 +64,10 @@ def start_sumo(binary=sumo_binary):
 
 def get_durations(conn):
 	'''
-	Grabs the phase durations for all traffic light systems in the road network.
+	Grabs the phase def plot_and_save_data():
+	df = pd.DataFrame(data=[waiting_a, emissions_a], columns=["Waiting Time", "Emissions"])
+	fname = datetime.now().strftime("%d-%m-%Y_%I-%M-%S_%p")
+	df.to_csv(f"data/simulation_data_{fname}")durations for all traffic light systems in the road network.
 
 	Args:
 		conn: traci connection object
@@ -166,6 +182,8 @@ def eval(durs, states):
 	fitness += emissions_weight * np.sum(emissions) + waiting_weight * np.sum(waiting)
 	# close the simulation instance and return the fitness
 	conn.close()
+	emission_a.append(np.mean(emissions))
+	waiting_a.append(np.mean(emissions))
 	return fitness
 
 # extract traffic light information from the road network
@@ -238,10 +256,12 @@ for epoch in range(100):
 			for step in range(n_show_steps):
 				conn.simulationStep()
 				time.sleep(40 / 1000)
+			plot_and_save_data()
 			conn.close()
 		except traci.exceptions.FatalTraCIError:
 			# user manually closed the simulation window, just proceed with the optimization
 			print('Manually closed TraCI visualization')
+			plot_and_save_data()
 			conn.close()
 
 print('=================================== Done! ===================================')
