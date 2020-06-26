@@ -18,7 +18,7 @@ cfg_name = 'martini.sumocfg'
 # define SUMO commands for starting the simulation
 sumo_binary = sumolib.checkBinary('sumo')
 sumo_binary_gui = sumolib.checkBinary('sumo-gui')
-sumo_cmd = ['-c', os.path.join('sumo_data', cfg_name), '--quit-on-end', '--start']
+sumo_cmd = ['-c', os.path.join('sumo_data', cfg_name), '--quit-on-end']
 
 def start_sumo(binary):
 	'''
