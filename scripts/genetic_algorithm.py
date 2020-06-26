@@ -37,7 +37,7 @@ sumo_cmd = ['-c', os.path.join('sumo_data', cfg_name), '--quit-on-end', '--start
 
 def start_sumo(binary=sumo_binary):
 	'''
-	Instantiates a SUMO simulation instance.
+	Instantiates a SUMO simulation instance and return a connection object.
 
 	Args:
 		binary: path to the SUMO binary file (path to "sumo" or "sumo-gui")
@@ -50,7 +50,12 @@ def start_sumo(binary=sumo_binary):
 	return traci.connect(port)
 
 def get_durations(conn):
-	'''Grabs the phase durations for all traffic light systems in the road network.'''
+	'''
+	Grabs the phase durations for all traffic light systems in the road network.
+
+	Args:
+		conn: traci connection object
+	'''
 	durations = []
 	for tl in tlights:
 		definitions = conn.trafficlight.getCompleteRedYellowGreenDefinition(tl)
@@ -60,7 +65,12 @@ def get_durations(conn):
 	return durations
 
 def get_states(conn):
-	'''Grabs the state definitions for all traffic light systems in the road network.'''
+	'''
+	Grabs the state definitions for all traffic light systems in the road network.
+
+	Args:
+		conn: traci connection object
+	'''
 	states = []
 	for tl in tlights:
 		definitions = conn.trafficlight.getCompleteRedYellowGreenDefinition(tl)
@@ -76,6 +86,7 @@ def set_genome(durations, states, conn):
 	Args:
 		durations: a list of durations for all traffic light phases in the simulation
 		states: a list of state strings for all traffic light phases in the simulation
+		conn: traci connection object
 	'''
 	idx = 0
 	# iterate over all traffic light systems in the simulation
