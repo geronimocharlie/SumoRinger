@@ -1,5 +1,8 @@
 # SumoRinger
 
+## Code
+Our code can be found in the [scripts directory](https://github.com/geronimocharlie/SumoRinger/tree/master/scripts). In the file `genetic_algorithm.py`, we have implemented a bio-inspired algorithm called Genetic Algorithm, which mimics survival of the fittest in an evolutionary setting. We use this to optimize both durations of traffic light phases, as well as the traffic light states at each intersection. Additionally, we provide tools for plotting the results and visualizing the traffic flow on Open Street Map data.
+
 ## Organizational
 [To-do list](https://github.com/geronimocharlie/SumoRinger/projects/1) | [Presentation brainstorming](https://github.com/geronimocharlie/SumoRinger/tree/master/presentation)
 
