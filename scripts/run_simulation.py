@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 
 # define hyperparameters
 n_steps = 2000
-model_file = 'model-23-3.87.pkl' # name of a file in the models directory
+model_file = 'model-36-1.85.pkl' # name of a file in the models directory
 
 # the simulation config file
 cfg_name = 'martini.sumocfg'
